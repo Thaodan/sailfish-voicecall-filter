@@ -1,3 +1,19 @@
+# Compat macros for Sailfish OS releases which don't have newer cmake
+# macros
+%undefine __cmake_in_source_build
+%if 0%{!?cmake_build:1}
+%define _vpath_srcdir .
+%define _vpath_builddir %{_target_platform}
+%define cmake_build \
+  mkdir -p %{_vpath_builddir};%__cmake --build "%{__cmake_builddir}" %{?_smp_mflags} --verbose
+%define __cmake_builddir %{!?__cmake_in_source_build:%{_vpath_builddir}}%{?__cmake_in_source_build:.}
+%endif
+%if 0%{!?cmake_install:1}
+%define cmake_install \
+  DESTDIR="%{buildroot}" %__cmake --install "%{__cmake_builddir}"
+%endif
+
+
 Name: sailfish-voicecall-filter
 Version: 0.2
 Release: 1
@@ -27,14 +43,14 @@ Requires: %{name} = %{version}-%{release}
 Development headers and library for the voice call filter.
 
 %prep
-%setup -q -n %{name}-%{version}
+%autosetup -n %{name}-%{version}
 
 %build
 %cmake
-make %{?_smp_mflags}
+%cmake_build
 
 %install
-make DESTDIR=%{buildroot} install
+%cmake_install
 UNIT_DIR=%{buildroot}%{_userunitdir}/user-session.target.wants
 mkdir -p "$UNIT_DIR"
 ln -sf ../voicecallfilterd.service "$UNIT_DIR/voicecallfilterd.service"
